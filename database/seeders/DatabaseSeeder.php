@@ -30,5 +30,8 @@ class DatabaseSeeder extends Seeder
             ['email' => 'kasir@posbengkel.test'],
             ['name' => 'Kasir Bengkel', 'role' => 'Kasir', 'password' => 'password'],
         );
+
+        $this->call(OrderSeeder::class);
+        $this->call(ListorderSeeder::class);
     }
 }

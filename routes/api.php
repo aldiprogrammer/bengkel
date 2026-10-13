@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\V1\JasaController;
 use App\Http\Controllers\Api\V1\KategoriController;
+use App\Http\Controllers\Api\V1\ListorderController;
+use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PegawaiController;
 use App\Http\Controllers\Api\V1\PelangganController;
 use App\Http\Controllers\Api\V1\PenggunaController;
@@ -15,4 +17,6 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
     Route::apiResource('kategori', KategoriController::class);
     Route::apiResource('produk', ProdukController::class);
     Route::apiResource('jasa', JasaController::class);
+    Route::apiResource('order', OrderController::class);
+    Route::apiResource('listorder', ListorderController::class);
 });

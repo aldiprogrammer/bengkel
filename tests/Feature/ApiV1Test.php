@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Jasa;
 use App\Models\Kategori;
+use App\Models\Listorder;
+use App\Models\Order;
 use App\Models\Pegawai;
 use App\Models\Pelanggan;
 use App\Models\Produk;
@@ -226,5 +228,112 @@ class ApiV1Test extends TestCase
         $this->deleteJson("/api/v1/jasa/{$id}")->assertNoContent();
 
         $this->assertDatabaseMissing('jasa', ['id' => $id]);
+    }
+
+    public function test_it_lists_and_creates_an_order(): void
+    {
+        Order::factory()->count(2)->create();
+
+        $this->getJson('/api/v1/order')
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+
+        $this->postJson('/api/v1/order', [
+            'kode_order' => 'ORD-7001',
+            'pelanggan' => 'Budi Santoso',
+            'montir' => 'Agus Setiawan',
+            'uang' => 300000,
+            'kembalian' => 35000,
+            'metode_pembayaran' => 'Tunai',
+            'total_harga' => 265000,
+            'diskon' => 0,
+            'grand_total' => 265000,
+            'tanggal' => '2026-09-21',
+            'status_struk' => 'Belum Cetak',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.kode_order', 'ORD-7001');
+
+        $this->assertDatabaseHas('order', ['kode_order' => 'ORD-7001']);
+    }
+
+    public function test_it_validates_an_order_payload(): void
+    {
+        $this->postJson('/api/v1/order', [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'kode_order',
+                'pelanggan',
+                'uang',
+                'kembalian',
+                'metode_pembayaran',
+                'total_harga',
+                'diskon',
+                'grand_total',
+                'tanggal',
+            ]);
+    }
+
+    public function test_it_shows_an_order_with_its_items_and_deletes_it(): void
+    {
+        $order = Order::factory()->create();
+        Listorder::factory()->create(['kode_order' => $order->kode_order]);
+
+        $this->getJson("/api/v1/order/{$order->id}")
+            ->assertOk()
+            ->assertJsonPath('data.kode_order', $order->kode_order)
+            ->assertJsonCount(1, 'data.listorder');
+
+        $this->deleteJson("/api/v1/order/{$order->id}")->assertNoContent();
+
+        $this->assertDatabaseMissing('order', ['id' => $order->id]);
+    }
+
+    public function test_it_lists_and_creates_an_order_item(): void
+    {
+        $order = Order::factory()->create();
+        $produk = Produk::factory()->create();
+        $user = User::factory()->create();
+
+        Listorder::factory()->create(['kode_order' => $order->kode_order]);
+
+        $this->getJson('/api/v1/listorder')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonStructure(['data' => [['id', 'kode_order', 'harga', 'qty', 'produk', 'jasa', 'kasir']]]);
+
+        $this->postJson('/api/v1/listorder', [
+            'kode_order' => $order->kode_order,
+            'kode_produk' => $produk->kode_produk,
+            'kode_jasa' => null,
+            'harga' => 65000,
+            'qty' => 2,
+            'diskon' => 0,
+            'id_kasir' => $user->id,
+            'tanggal' => '2026-09-21',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.kode_produk', $produk->kode_produk);
+
+        $this->assertDatabaseHas('listorder', [
+            'kode_order' => $order->kode_order,
+            'kode_produk' => $produk->kode_produk,
+        ]);
+    }
+
+    public function test_it_validates_an_order_item_payload(): void
+    {
+        $this->postJson('/api/v1/listorder', [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'kode_order',
+                'kode_produk',
+                'kode_jasa',
+                'harga',
+                'qty',
+                'diskon',
+                'id_kasir',
+                'tanggal',
+            ]);
     }
 }
