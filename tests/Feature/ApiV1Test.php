@@ -319,7 +319,7 @@ class ApiV1Test extends TestCase
     public function test_it_lists_and_creates_an_order_item(): void
     {
         $order = Order::factory()->create();
-        $produk = Produk::factory()->create();
+        $produk = Produk::factory()->create(['stok' => 10]);
         $user = User::factory()->create();
 
         Listorder::factory()->create(['kode_order' => $order->kode_order]);
@@ -345,6 +345,11 @@ class ApiV1Test extends TestCase
         $this->assertDatabaseHas('listorder', [
             'kode_order' => $order->kode_order,
             'kode_produk' => $produk->kode_produk,
+        ]);
+
+        $this->assertDatabaseHas('produk', [
+            'kode_produk' => $produk->kode_produk,
+            'stok' => 8,
         ]);
     }
 

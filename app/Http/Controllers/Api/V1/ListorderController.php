@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ListorderRequest;
 use App\Http\Resources\ListorderResource;
 use App\Models\Listorder;
+use App\Models\Produk;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 
 class ListorderController extends Controller
 {
@@ -30,7 +32,19 @@ class ListorderController extends Controller
      */
     public function store(ListorderRequest $request): JsonResponse
     {
-        $listorder = Listorder::query()->create($request->validated());
+        $listorder = DB::transaction(function () use ($request): Listorder {
+            $data = $request->validated();
+
+            $listorder = Listorder::query()->create($data);
+
+            if (! empty($data['kode_produk'])) {
+                Produk::query()
+                    ->where('kode_produk', $data['kode_produk'])
+                    ->decrement('stok', $data['qty']);
+            }
+
+            return $listorder;
+        });
 
         return (new ListorderResource($listorder->load(['produk', 'jasa', 'kasir'])))
             ->response()
