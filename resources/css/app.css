@@ -18,4 +18,39 @@
     --color-brand-800: #166534;
     --color-brand-900: #14532d;
     --color-brand-950: #052e16;
+
+    --animate-pwa-in: pwa-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+    --animate-pwa-fade: pwa-fade 0.25s ease-out both;
+    --animate-pwa-pop: pwa-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+    @keyframes pwa-in {
+        from {
+            opacity: 0;
+            transform: translateY(24px) scale(0.98);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @keyframes pwa-fade {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes pwa-pop {
+        from {
+            opacity: 0;
+            transform: translateY(12px) scale(0.94);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
 }

@@ -9,7 +9,10 @@ use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\PelangganController;
 use App\Http\Controllers\PenggunaController;
 use App\Http\Controllers\ProdukController;
+use App\Http\Controllers\PwaController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('manifest.webmanifest', [PwaController::class, 'manifest'])->name('pwa.manifest');
 
 Route::redirect('/', '/dashboard');
 

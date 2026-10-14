@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import Icon from '../Components/Icons';
+import { usePwaInstall } from '../Components/PwaInstallProvider';
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: 'dashboard' },
@@ -104,9 +105,18 @@ export default function AdminLayout({ title, children }) {
     const { props, url } = usePage();
     const user = props.auth?.user;
     const flash = props.flash ?? {};
+    const {
+        canInstall,
+        installed,
+        isIos,
+        promptInstall,
+        openManual,
+    } = usePwaInstall();
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+    const showInstall = !installed && (canInstall || isIos);
 
     const initials = (user?.name ?? 'A')
         .split(' ')
@@ -117,6 +127,17 @@ export default function AdminLayout({ title, children }) {
 
     const logout = () => {
         router.post('/logout');
+    };
+
+    const installApp = async () => {
+        setUserMenuOpen(false);
+
+        if (canInstall) {
+            await promptInstall();
+            return;
+        }
+
+        openManual();
     };
 
     return (
@@ -241,6 +262,19 @@ export default function AdminLayout({ title, children }) {
                                             />
                                             Pengaturan
                                         </Link>
+                                        {showInstall && (
+                                            <button
+                                                type="button"
+                                                onClick={installApp}
+                                                className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+                                            >
+                                                <Icon
+                                                    name="download"
+                                                    className="h-4 w-4 text-slate-400"
+                                                />
+                                                Pasang Aplikasi
+                                            </button>
+                                        )}
                                         <button
                                             type="button"
                                             onClick={logout}
