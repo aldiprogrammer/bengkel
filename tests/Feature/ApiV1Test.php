@@ -233,15 +233,18 @@ class ApiV1Test extends TestCase
     public function test_it_lists_and_creates_an_order(): void
     {
         Order::factory()->count(2)->create();
+        $user = User::factory()->create();
 
         $this->getJson('/api/v1/order')
             ->assertOk()
-            ->assertJsonCount(2, 'data');
+            ->assertJsonCount(2, 'data')
+            ->assertJsonStructure(['data' => [['id', 'kode_order', 'id_kasir', 'kasir']]]);
 
         $this->postJson('/api/v1/order', [
             'kode_order' => 'ORD-7001',
             'pelanggan' => 'Budi Santoso',
             'montir' => 'Agus Setiawan',
+            'id_kasir' => $user->id,
             'uang' => 300000,
             'kembalian' => 35000,
             'metode_pembayaran' => 'Tunai',
@@ -252,9 +255,32 @@ class ApiV1Test extends TestCase
             'status_struk' => 'Belum Cetak',
         ])
             ->assertCreated()
-            ->assertJsonPath('data.kode_order', 'ORD-7001');
+            ->assertJsonPath('data.kode_order', 'ORD-7001')
+            ->assertJsonPath('data.id_kasir', $user->id)
+            ->assertJsonPath('data.kasir.name', $user->name);
 
-        $this->assertDatabaseHas('order', ['kode_order' => 'ORD-7001']);
+        $this->assertDatabaseHas('order', [
+            'kode_order' => 'ORD-7001',
+            'id_kasir' => $user->id,
+        ]);
+    }
+
+    public function test_it_validates_the_order_cashier(): void
+    {
+        $this->postJson('/api/v1/order', [
+            'kode_order' => 'ORD-8001',
+            'pelanggan' => 'Budi Santoso',
+            'uang' => 100000,
+            'kembalian' => 0,
+            'metode_pembayaran' => 'Tunai',
+            'total_harga' => 100000,
+            'diskon' => 0,
+            'grand_total' => 100000,
+            'tanggal' => '2026-09-21',
+            'id_kasir' => 999999,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['id_kasir']);
     }
 
     public function test_it_validates_an_order_payload(): void
@@ -282,6 +308,7 @@ class ApiV1Test extends TestCase
         $this->getJson("/api/v1/order/{$order->id}")
             ->assertOk()
             ->assertJsonPath('data.kode_order', $order->kode_order)
+            ->assertJsonPath('data.kasir.id', $order->id_kasir)
             ->assertJsonCount(1, 'data.listorder');
 
         $this->deleteJson("/api/v1/order/{$order->id}")->assertNoContent();

@@ -7,14 +7,14 @@ const navigation = [
     { name: 'Pelanggan', href: '/pelanggan', icon: 'users' },
     { name: 'Pegawai', href: '/pegawai', icon: 'badge' },
     { name: 'Pengguna', href: '/pengguna', icon: 'shield' },
-    { name: 'Kendaraan', href: '/kendaraan', icon: 'truck' },
-    { name: 'Servis / Work Order', href: '/servis', icon: 'wrench' },
+    // { name: 'Kendaraan', href: '/kendaraan', icon: 'truck' },
+    // { name: 'Servis / Work Order', href: '/servis', icon: 'wrench' },
     { name: 'Kategori', href: '/kategori', icon: 'folder' },
     { name: 'Produk & Stok', href: '/produk', icon: 'box' },
     { name: 'Jasa', href: '/jasa', icon: 'tag' },
-    { name: 'Transaksi POS', href: '/transaksi', icon: 'cart' },
+    // { name: 'Transaksi POS', href: '/transaksi', icon: 'cart' },
     { name: 'Laporan', href: '/laporan', icon: 'chart' },
-    { name: 'Pengaturan', href: '/pengaturan', icon: 'settings' },
+    // { name: 'Pengaturan', href: '/pengaturan', icon: 'settings' },
 ];
 
 function isActive(currentUrl, href) {
@@ -62,19 +62,17 @@ function SidebarContent({ currentUrl, onNavigate }) {
                             key={item.name}
                             href={item.href}
                             onClick={onNavigate}
-                            className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                                active
-                                    ? 'bg-brand-500 text-white shadow-sm shadow-brand-900/30'
-                                    : 'text-brand-100 hover:bg-brand-700/60 hover:text-white'
-                            }`}
+                            className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${active
+                                ? 'bg-brand-500 text-white shadow-sm shadow-brand-900/30'
+                                : 'text-brand-100 hover:bg-brand-700/60 hover:text-white'
+                                }`}
                         >
                             <Icon
                                 name={item.icon}
-                                className={`h-5 w-5 shrink-0 ${
-                                    active
-                                        ? 'text-white'
-                                        : 'text-brand-300 group-hover:text-white'
-                                }`}
+                                className={`h-5 w-5 shrink-0 ${active
+                                    ? 'text-white'
+                                    : 'text-brand-300 group-hover:text-white'
+                                    }`}
                             />
                             {item.name}
                         </Link>
@@ -88,14 +86,14 @@ function SidebarContent({ currentUrl, onNavigate }) {
                         Butuh bantuan?
                     </p>
                     <p className="mt-1 text-xs text-brand-200">
-                        Lihat panduan penggunaan POS Bengkel.
+                        Hubungi admin kami 0838-6726-2985
                     </p>
-                    <button
+                    {/* <button
                         type="button"
                         className="mt-3 w-full rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/20"
                     >
                         Buka Panduan
-                    </button>
+                    </button> */}
                 </div>
             </div>
         </div>

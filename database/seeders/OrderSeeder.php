@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Order;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class OrderSeeder extends Seeder
@@ -12,6 +13,12 @@ class OrderSeeder extends Seeder
      */
     public function run(): void
     {
+        $kasir = User::query()->orderBy('id')->first();
+
+        if (! $kasir) {
+            return;
+        }
+
         $orders = [
             ['kode_order' => 'ORD-0001', 'pelanggan' => 'Budi Santoso', 'montir' => 'Agus Setiawan', 'total_harga' => 265000, 'diskon' => 0, 'metode_pembayaran' => 'Tunai', 'status_struk' => 'Sudah Cetak', 'tanggal' => '2026-09-21'],
             ['kode_order' => 'ORD-0002', 'pelanggan' => 'Siti Aminah', 'montir' => 'Dedi Kurniawan', 'total_harga' => 780000, 'diskon' => 10, 'metode_pembayaran' => 'Transfer', 'status_struk' => 'Belum Cetak', 'tanggal' => '2026-09-22'],
@@ -27,6 +34,7 @@ class OrderSeeder extends Seeder
                 [
                     'pelanggan' => $data['pelanggan'],
                     'montir' => $data['montir'],
+                    'id_kasir' => $kasir->id,
                     'uang' => $uang,
                     'kembalian' => $uang - $grandTotal,
                     'metode_pembayaran' => $data['metode_pembayaran'],

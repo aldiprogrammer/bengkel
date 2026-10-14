@@ -4,13 +4,17 @@ namespace Tests\Feature;
 
 use App\Models\Jasa;
 use App\Models\Kategori;
+use App\Models\Listorder;
+use App\Models\Order;
 use App\Models\Pegawai;
 use App\Models\Pelanggan;
 use App\Models\Produk;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
+use Mockery;
 use Tests\TestCase;
 
 class AdminPanelTest extends TestCase
@@ -65,6 +69,83 @@ class AdminPanelTest extends TestCase
                 ->component('Dashboard')
                 ->has('stats', 4)
                 ->has('recentOrders')
+                ->has('bestSellers')
+            );
+    }
+
+    public function test_dashboard_shows_statistics_from_the_database(): void
+    {
+        $user = User::factory()->create();
+
+        Order::factory()->create([
+            'kode_order' => 'ORD-8001',
+            'grand_total' => 100000,
+            'tanggal' => now()->toDateString(),
+        ]);
+        Order::factory()->create([
+            'kode_order' => 'ORD-8002',
+            'grand_total' => 250000,
+            'tanggal' => now()->toDateString(),
+        ]);
+
+        Pelanggan::factory()->count(3)->create();
+        Produk::factory()->count(2)->create();
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->where('stats.0.value', 2)
+                ->where('stats.1.value', 350000)
+                ->where('stats.2.value', 3)
+                ->where('stats.3.value', 2)
+            );
+    }
+
+    public function test_dashboard_shows_best_selling_products(): void
+    {
+        $user = User::factory()->create();
+        $kategori = Kategori::factory()->create();
+
+        Produk::factory()->create([
+            'kode_produk' => 'BRG-9001',
+            'nama_produk' => 'Oli Mesin',
+            'kategori_id' => $kategori->id,
+        ]);
+        Produk::factory()->create([
+            'kode_produk' => 'BRG-9002',
+            'nama_produk' => 'Filter Oli',
+            'kategori_id' => $kategori->id,
+        ]);
+
+        $order = Order::factory()->create();
+
+        Listorder::factory()->create([
+            'kode_order' => $order->kode_order,
+            'kode_produk' => 'BRG-9001',
+            'kode_jasa' => null,
+            'qty' => 10,
+            'id_kasir' => $user->id,
+        ]);
+        Listorder::factory()->create([
+            'kode_order' => $order->kode_order,
+            'kode_produk' => 'BRG-9002',
+            'kode_jasa' => null,
+            'qty' => 3,
+            'id_kasir' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->has('bestSellers', 2)
+                ->where('bestSellers.0.nama_produk', 'Oli Mesin')
+                ->where('bestSellers.0.total_qty', 10)
+                ->where('bestSellers.1.nama_produk', 'Filter Oli')
+                ->where('bestSellers.1.total_qty', 3)
             );
     }
 
@@ -690,6 +771,79 @@ class AdminPanelTest extends TestCase
         $this->assertDatabaseMissing('produk', ['id' => $produk->id]);
     }
 
+    public function test_users_can_export_products_as_pdf(): void
+    {
+        $user = User::factory()->create();
+        $kategori = Kategori::factory()->create(['nama_kategori' => 'Pelumas']);
+
+        Produk::factory()->create([
+            'kode_produk' => 'BRG-9101',
+            'nama_produk' => 'Oli Mesin',
+            'kategori_id' => $kategori->id,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->get('/produk/export?search=oli&kategori='.$kategori->id);
+
+        $response->assertOk();
+        $this->assertStringContainsString(
+            'application/pdf',
+            (string) $response->headers->get('content-type'),
+        );
+    }
+
+    public function test_users_can_export_product_barcodes_as_pdf(): void
+    {
+        $user = User::factory()->create();
+
+        Produk::factory()->create([
+            'kode_produk' => 'BRG-9102',
+            'nama_produk' => 'Kampas Rem',
+        ]);
+        Produk::factory()->create([
+            'kode_produk' => 'BRG-9900',
+            'nama_produk' => 'Busi',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->get('/produk/barcode?search=kampas');
+
+        $response->assertOk();
+        $this->assertStringContainsString(
+            'application/pdf',
+            (string) $response->headers->get('content-type'),
+        );
+    }
+
+    public function test_barcode_export_can_be_limited_to_selected_products(): void
+    {
+        $user = User::factory()->create();
+
+        $selected = Produk::factory()->create([
+            'kode_produk' => 'BRG-9102',
+            'nama_produk' => 'Kampas Rem',
+        ]);
+        Produk::factory()->create([
+            'kode_produk' => 'BRG-9900',
+            'nama_produk' => 'Busi',
+        ]);
+
+        Pdf::shouldReceive('loadView')
+            ->once()
+            ->with('produk.barcode', Mockery::on(
+                fn (array $data): bool => $data['labels']->pluck('kode_produk')->all() === ['BRG-9102'],
+            ))
+            ->andReturnSelf();
+        Pdf::shouldReceive('setPaper')->once()->andReturnSelf();
+        Pdf::shouldReceive('download')
+            ->once()
+            ->andReturn(response('pdf', 200, ['Content-Type' => 'application/pdf']));
+
+        $this->actingAs($user)
+            ->get('/produk/barcode?ids='.$selected->id)
+            ->assertOk();
+    }
+
     public function test_category_used_by_a_product_cannot_be_deleted(): void
     {
         $user = User::factory()->create();
@@ -818,6 +972,79 @@ class AdminPanelTest extends TestCase
             ->assertRedirect('/pengguna');
 
         $this->assertDatabaseMissing('users', ['id' => $target->id]);
+    }
+
+    public function test_laporan_page_lists_orders_for_the_selected_month(): void
+    {
+        $user = User::factory()->create();
+
+        Order::factory()->create([
+            'kode_order' => 'ORD-7001',
+            'pelanggan' => 'Budi Santoso',
+            'metode_pembayaran' => 'Tunai',
+            'grand_total' => 150000,
+            'tanggal' => '2026-05-10',
+        ]);
+        Order::factory()->create([
+            'kode_order' => 'ORD-7002',
+            'grand_total' => 250000,
+            'tanggal' => '2026-06-10',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/laporan?mode=bulan&bulan=2026-05')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Laporan/Index')
+                ->has('orders', 1)
+                ->where('orders.0.kode_order', 'ORD-7001')
+                ->where('orders.0.grand_total', 150000)
+                ->where('summary.0.value', 150000)
+                ->where('summary.1.value', 1)
+                ->where('summary.2.value', 150000)
+                ->where('filters.mode', 'bulan')
+                ->where('filters.bulan', '2026-05')
+            );
+    }
+
+    public function test_laporan_page_filters_orders_by_date_range(): void
+    {
+        $user = User::factory()->create();
+
+        Order::factory()->create(['kode_order' => 'ORD-7101', 'tanggal' => '2026-05-01']);
+        Order::factory()->create(['kode_order' => 'ORD-7102', 'tanggal' => '2026-05-20']);
+        Order::factory()->create(['kode_order' => 'ORD-7103', 'tanggal' => '2026-06-01']);
+
+        $this->actingAs($user)
+            ->get('/laporan?mode=rentang&dari=2026-05-01&sampai=2026-05-31')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Laporan/Index')
+                ->has('orders', 2)
+                ->where('summary.1.value', 2)
+                ->where('filters.mode', 'rentang')
+                ->where('filters.dari', '2026-05-01')
+                ->where('filters.sampai', '2026-05-31')
+            );
+    }
+
+    public function test_users_can_export_the_report_as_pdf(): void
+    {
+        $user = User::factory()->create();
+
+        Order::factory()->create([
+            'kode_order' => 'ORD-7201',
+            'tanggal' => '2026-05-10',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->get('/laporan/export?mode=bulan&bulan=2026-05');
+
+        $response->assertOk();
+        $this->assertStringContainsString(
+            'application/pdf',
+            (string) $response->headers->get('content-type'),
+        );
     }
 
     public function test_users_can_logout(): void

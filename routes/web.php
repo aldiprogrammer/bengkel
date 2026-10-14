@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\JasaController;
 use App\Http\Controllers\KategoriController;
+use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\PelangganController;
 use App\Http\Controllers\PenggunaController;
@@ -50,10 +51,13 @@ Route::middleware('auth')->group(function () {
     Route::delete('kategori/{kategori}', [KategoriController::class, 'destroy'])->name('kategori.destroy');
 
     Route::get('produk', [ProdukController::class, 'index'])->name('produk.index');
+    Route::get('produk/export', [ProdukController::class, 'exportPdf'])->name('produk.export');
+    Route::get('produk/barcode', [ProdukController::class, 'exportBarcodePdf'])->name('produk.barcode');
     Route::post('produk', [ProdukController::class, 'store'])->name('produk.store');
     Route::put('produk/{produk}', [ProdukController::class, 'update'])->name('produk.update');
     Route::delete('produk/{produk}', [ProdukController::class, 'destroy'])->name('produk.destroy');
     Route::inertia('transaksi', 'Transaksi/Index')->name('transaksi.index');
-    Route::inertia('laporan', 'Laporan/Index')->name('laporan.index');
+    Route::get('laporan', [LaporanController::class, 'index'])->name('laporan.index');
+    Route::get('laporan/export', [LaporanController::class, 'exportPdf'])->name('laporan.export');
     Route::inertia('pengaturan', 'Pengaturan/Index')->name('pengaturan.index');
 });

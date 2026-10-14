@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Order;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -30,6 +31,7 @@ class OrderFactory extends Factory
             'kode_order' => 'ORD-'.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT),
             'pelanggan' => fake()->name(),
             'montir' => fake()->name(),
+            'id_kasir' => User::factory(),
             'uang' => $uang,
             'kembalian' => $uang - $grandTotal,
             'metode_pembayaran' => fake()->randomElement(['Tunai', 'Transfer', 'QRIS', 'Debit']),

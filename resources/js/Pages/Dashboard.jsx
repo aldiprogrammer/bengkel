@@ -33,11 +33,10 @@ function StatCard({ stat }) {
                     <Icon name={stat.icon} className="h-6 w-6" />
                 </span>
                 <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${
-                        isUp
-                            ? 'bg-brand-50 text-brand-700 ring-brand-200'
-                            : 'bg-rose-50 text-rose-700 ring-rose-200'
-                    }`}
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${isUp
+                        ? 'bg-brand-50 text-brand-700 ring-brand-200'
+                        : 'bg-rose-50 text-rose-700 ring-rose-200'
+                        }`}
                 >
                     <Icon
                         name={isUp ? 'arrowUp' : 'arrowDown'}
@@ -141,81 +140,139 @@ function ServiceBreakdown({ data }) {
     );
 }
 
-function RecentOrders({ orders }) {
+// function RecentOrders({ orders }) {
+//     return (
+//         <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+//             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+//                 <div>
+//                     <h3 className="font-semibold text-slate-900">
+//                         Work Order Terbaru
+//                     </h3>
+//                     <p className="text-xs text-slate-500">
+//                         Daftar servis yang terakhir masuk
+//                     </p>
+//                 </div>
+//                 <Link
+//                     href="/servis"
+//                     className="text-sm font-medium text-brand-600 hover:text-brand-700"
+//                 >
+//                     Lihat semua
+//                 </Link>
+//             </div>
+
+//             <div className="overflow-x-auto">
+//                 <table className="min-w-full divide-y divide-slate-100 text-sm">
+//                     <thead className="bg-slate-50">
+//                         <tr>
+//                             <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+//                                 No. Order
+//                             </th>
+//                             <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+//                                 Pelanggan
+//                             </th>
+//                             <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+//                                 Status
+//                             </th>
+//                             <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+//                                 Total
+//                             </th>
+//                         </tr>
+//                     </thead>
+//                     <tbody className="divide-y divide-slate-100">
+//                         {orders.map((order) => (
+//                             <tr
+//                                 key={order.id}
+//                                 className="hover:bg-slate-50"
+//                             >
+//                                 <td className="whitespace-nowrap px-5 py-3">
+//                                     <span className="font-semibold text-slate-800">
+//                                         {order.id}
+//                                     </span>
+//                                     <span className="block text-xs text-slate-400">
+//                                         {order.date}
+//                                     </span>
+//                                 </td>
+//                                 <td className="px-5 py-3">
+//                                     <span className="font-medium text-slate-700">
+//                                         {order.customer}
+//                                     </span>
+//                                     <span className="block text-xs text-slate-400">
+//                                         {order.vehicle}
+//                                     </span>
+//                                 </td>
+//                                 <td className="whitespace-nowrap px-5 py-3">
+//                                     <StatusBadge
+//                                         tone={orderTones[order.status]}
+//                                     >
+//                                         {order.status}
+//                                     </StatusBadge>
+//                                 </td>
+//                                 <td className="whitespace-nowrap px-5 py-3 text-right font-semibold text-slate-800">
+//                                     {currency.format(order.amount)}
+//                                 </td>
+//                             </tr>
+//                         ))}
+//                     </tbody>
+//                 </table>
+//             </div>
+//         </div>
+//     );
+// }
+
+function BestSellers({ products }) {
+    const max = Math.max(...products.map((item) => item.total_qty), 1);
+
     return (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between">
                 <div>
                     <h3 className="font-semibold text-slate-900">
-                        Work Order Terbaru
+                        Produk Terlaris
                     </h3>
                     <p className="text-xs text-slate-500">
-                        Daftar servis yang terakhir masuk
+                        Produk paling banyak terjual
                     </p>
                 </div>
-                <Link
-                    href="/servis"
-                    className="text-sm font-medium text-brand-600 hover:text-brand-700"
-                >
-                    Lihat semua
-                </Link>
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                    <Icon name="box" className="h-5 w-5" />
+                </span>
             </div>
 
-            <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-100 text-sm">
-                    <thead className="bg-slate-50">
-                        <tr>
-                            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                No. Order
-                            </th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                Pelanggan
-                            </th>
-                            <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                Status
-                            </th>
-                            <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
-                                Total
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                        {orders.map((order) => (
-                            <tr
-                                key={order.id}
-                                className="hover:bg-slate-50"
-                            >
-                                <td className="whitespace-nowrap px-5 py-3">
-                                    <span className="font-semibold text-slate-800">
-                                        {order.id}
+            {products.length === 0 ? (
+                <p className="mt-6 text-sm text-slate-400">
+                    Belum ada data penjualan produk.
+                </p>
+            ) : (
+                <div className="mt-6 space-y-4">
+                    {products.map((item, index) => (
+                        <div key={item.kode_produk}>
+                            <div className="mb-1.5 flex items-center justify-between text-sm">
+                                <span className="flex min-w-0 items-center gap-2 font-medium text-slate-600">
+                                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-brand-50 text-[11px] font-bold text-brand-700">
+                                        {index + 1}
                                     </span>
-                                    <span className="block text-xs text-slate-400">
-                                        {order.date}
+                                    <span className="truncate">
+                                        {item.nama_produk}
                                     </span>
-                                </td>
-                                <td className="px-5 py-3">
-                                    <span className="font-medium text-slate-700">
-                                        {order.customer}
-                                    </span>
-                                    <span className="block text-xs text-slate-400">
-                                        {order.vehicle}
-                                    </span>
-                                </td>
-                                <td className="whitespace-nowrap px-5 py-3">
-                                    <StatusBadge
-                                        tone={orderTones[order.status]}
-                                    >
-                                        {order.status}
-                                    </StatusBadge>
-                                </td>
-                                <td className="whitespace-nowrap px-5 py-3 text-right font-semibold text-slate-800">
-                                    {currency.format(order.amount)}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                                </span>
+                                <span className="shrink-0 font-semibold text-slate-900">
+                                    {number.format(item.total_qty)}
+                                </span>
+                            </div>
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                                <div
+                                    className="h-full rounded-full bg-brand-500"
+                                    style={{
+                                        width: `${Math.round(
+                                            (item.total_qty / max) * 100,
+                                        )}%`,
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
@@ -225,6 +282,7 @@ export default function Dashboard({
     salesChart = [],
     serviceBreakdown = [],
     recentOrders = [],
+    bestSellers = [],
 }) {
     return (
         <>
@@ -240,11 +298,15 @@ export default function Dashboard({
                 <div className="lg:col-span-2">
                     <SalesChart data={salesChart} />
                 </div>
-                <ServiceBreakdown data={serviceBreakdown} />
+                {/* <ServiceBreakdown data={serviceBreakdown} /> */}
+                <BestSellers products={bestSellers} />
             </div>
 
-            <div className="mt-6">
-                <RecentOrders orders={recentOrders} />
+            <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                    {/* <RecentOrders orders={recentOrders} /> */}
+                </div>
+
             </div>
         </>
     );

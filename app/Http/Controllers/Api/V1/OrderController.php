@@ -17,7 +17,7 @@ class OrderController extends Controller
     public function index(): AnonymousResourceCollection
     {
         $order = Order::query()
-            ->with('listorder')
+            ->with('listorder', 'kasir')
             ->orderByDesc('tanggal')
             ->orderByDesc('id')
             ->get();
@@ -32,7 +32,7 @@ class OrderController extends Controller
     {
         $order = Order::query()->create($request->validated());
 
-        return (new OrderResource($order->load('listorder')))
+        return (new OrderResource($order->load('listorder', 'kasir')))
             ->response()
             ->setStatusCode(201);
     }
@@ -42,7 +42,7 @@ class OrderController extends Controller
      */
     public function show(Order $order): OrderResource
     {
-        return new OrderResource($order->load('listorder.produk', 'listorder.jasa', 'listorder.kasir'));
+        return new OrderResource($order->load('listorder.produk', 'listorder.jasa', 'listorder.kasir', 'kasir'));
     }
 
     /**
@@ -52,7 +52,7 @@ class OrderController extends Controller
     {
         $order->update($request->validated());
 
-        return new OrderResource($order->load('listorder'));
+        return new OrderResource($order->load('listorder', 'kasir'));
     }
 
     /**

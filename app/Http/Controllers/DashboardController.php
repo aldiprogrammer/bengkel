@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Order;
+use App\Models\Pelanggan;
+use App\Models\Produk;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -12,38 +16,77 @@ class DashboardController extends Controller
      */
     public function index(): Response
     {
+        $startOfMonth = now()->startOfMonth()->toDateString();
+        $endOfMonth = now()->endOfMonth()->toDateString();
+        $startOfLastMonth = now()->subMonthNoOverflow()->startOfMonth()->toDateString();
+        $endOfLastMonth = now()->subMonthNoOverflow()->endOfMonth()->toDateString();
+
+        $ordersThisMonth = Order::query()
+            ->whereBetween('tanggal', [$startOfMonth, $endOfMonth])
+            ->count();
+        $ordersLastMonth = Order::query()
+            ->whereBetween('tanggal', [$startOfLastMonth, $endOfLastMonth])
+            ->count();
+
+        $revenueThisMonth = (int) Order::query()
+            ->whereBetween('tanggal', [$startOfMonth, $endOfMonth])
+            ->sum('grand_total');
+        $revenueLastMonth = (int) Order::query()
+            ->whereBetween('tanggal', [$startOfLastMonth, $endOfLastMonth])
+            ->sum('grand_total');
+
+        $totalPelanggan = Pelanggan::query()->count();
+        $pelangganLastMonth = Pelanggan::query()
+            ->whereDate('created_at', '<=', $endOfLastMonth)
+            ->count();
+
+        $totalProduk = Produk::query()->count();
+        $produkLastMonth = Produk::query()
+            ->whereDate('created_at', '<=', $endOfLastMonth)
+            ->count();
+
+        $bestSellers = DB::table('listorder')
+            ->join('produk', 'produk.kode_produk', '=', 'listorder.kode_produk')
+            ->whereNotNull('listorder.kode_produk')
+            ->selectRaw('produk.kode_produk, produk.nama_produk, sum(listorder.qty) as total_qty')
+            ->groupBy('produk.kode_produk', 'produk.nama_produk')
+            ->orderByDesc('total_qty')
+            ->limit(5)
+            ->get()
+            ->map(fn (object $row): array => [
+                'kode_produk' => $row->kode_produk,
+                'nama_produk' => $row->nama_produk,
+                'total_qty' => (int) $row->total_qty,
+            ]);
+
         return Inertia::render('Dashboard', [
             'stats' => [
                 [
-                    'label' => 'Pendapatan Bulan Ini',
-                    'value' => 48250000,
-                    'format' => 'currency',
-                    'change' => 12.5,
-                    'trend' => 'up',
-                    'icon' => 'wallet',
-                ],
-                [
-                    'label' => 'Work Order Aktif',
-                    'value' => 38,
+                    'label' => 'Jumlah Order',
+                    'value' => $ordersThisMonth,
                     'format' => 'number',
-                    'change' => 6.2,
-                    'trend' => 'up',
+                    ...$this->growth($ordersLastMonth, $ordersThisMonth),
                     'icon' => 'wrench',
                 ],
                 [
-                    'label' => 'Pelanggan Baru',
-                    'value' => 124,
+                    'label' => 'Pendapatan Bulan Ini',
+                    'value' => $revenueThisMonth,
+                    'format' => 'currency',
+                    ...$this->growth($revenueLastMonth, $revenueThisMonth),
+                    'icon' => 'wallet',
+                ],
+                [
+                    'label' => 'Jumlah Pelanggan',
+                    'value' => $totalPelanggan,
                     'format' => 'number',
-                    'change' => 3.1,
-                    'trend' => 'down',
+                    ...$this->growth($pelangganLastMonth, $totalPelanggan),
                     'icon' => 'users',
                 ],
                 [
-                    'label' => 'Stok Hampir Habis',
-                    'value' => 9,
+                    'label' => 'Jumlah Produk',
+                    'value' => $totalProduk,
                     'format' => 'number',
-                    'change' => 2.4,
-                    'trend' => 'down',
+                    ...$this->growth($produkLastMonth, $totalProduk),
                     'icon' => 'box',
                 ],
             ],
@@ -67,6 +110,7 @@ class DashboardController extends Controller
                 ['label' => 'Perbaikan Mesin', 'value' => 19, 'color' => '#4ade80'],
                 ['label' => 'Lainnya', 'value' => 13, 'color' => '#86efac'],
             ],
+            'bestSellers' => $bestSellers,
             'recentOrders' => [
                 [
                     'id' => 'WO-2041',
@@ -110,5 +154,21 @@ class DashboardController extends Controller
                 ],
             ],
         ]);
+    }
+
+    /**
+     * Calculate the percentage change and direction between two periods.
+     *
+     * @return array{change: float, trend: string}
+     */
+    private function growth(int $previous, int $current): array
+    {
+        if ($previous === 0) {
+            return ['change' => $current > 0 ? 100.0 : 0.0, 'trend' => 'up'];
+        }
+
+        $change = round(($current - $previous) / $previous * 100, 1);
+
+        return ['change' => $change, 'trend' => $change >= 0 ? 'up' : 'down'];
     }
 }

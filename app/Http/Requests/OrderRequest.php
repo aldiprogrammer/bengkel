@@ -32,6 +32,7 @@ class OrderRequest extends FormRequest
             ],
             'pelanggan' => ['required', 'string', 'max:255'],
             'montir' => ['nullable', 'string', 'max:255'],
+            'id_kasir' => ['nullable', 'integer', Rule::exists('users', 'id')],
             'uang' => ['required', 'integer', 'min:0'],
             'kembalian' => ['required', 'integer', 'min:0'],
             'metode_pembayaran' => ['required', 'string', 'max:255'],

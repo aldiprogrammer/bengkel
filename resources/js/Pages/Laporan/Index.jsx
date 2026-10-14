@@ -1,4 +1,5 @@
-import { Head } from '@inertiajs/react';
+import { useState } from 'react';
+import { Head, router } from '@inertiajs/react';
 import AdminLayout from '../../Layouts/AdminLayout';
 import PageHeader from '../../Components/PageHeader';
 import DataTable from '../../Components/DataTable';
@@ -10,81 +11,165 @@ const currency = new Intl.NumberFormat('id-ID', {
     maximumFractionDigits: 0,
 });
 
-const summary = [
-    { label: 'Pendapatan Tahun Ini', value: 512300000, format: 'currency', icon: 'wallet' },
-    { label: 'Total Work Order', value: 1284, format: 'number', icon: 'wrench' },
-    { label: 'Rata-rata per Order', value: 399000, format: 'currency', icon: 'chart' },
-];
+const number = new Intl.NumberFormat('id-ID');
 
-const report = [
-    { id: 1, month: 'Oktober 2026', orders: 138, revenue: 48250000, growth: 12.5 },
-    { id: 2, month: 'September 2026', orders: 121, revenue: 42870000, growth: 6.8 },
-    { id: 3, month: 'Agustus 2026', orders: 132, revenue: 40150000, growth: -2.3 },
-    { id: 4, month: 'Juli 2026', orders: 118, revenue: 41100000, growth: 4.1 },
-    { id: 5, month: 'Juni 2026', orders: 109, revenue: 39480000, growth: 1.9 },
-];
+const date = new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+});
+
+const inputClass =
+    'rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20';
+
+const labelClass =
+    'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500';
 
 const columns = [
     {
-        key: 'month',
-        label: 'Periode',
+        key: 'kode_order',
+        label: 'Kode Order',
         render: (row) => (
-            <span className="font-medium text-slate-800">{row.month}</span>
+            <span className="font-medium text-slate-800">{row.kode_order}</span>
         ),
     },
     {
-        key: 'orders',
-        label: 'Jumlah Order',
-        render: (row) => `${row.orders} order`,
+        key: 'tanggal',
+        label: 'Tanggal',
+        render: (row) => date.format(new Date(row.tanggal)),
     },
+    { key: 'pelanggan', label: 'Pelanggan' },
+    { key: 'metode_pembayaran', label: 'Metode' },
     {
-        key: 'revenue',
-        label: 'Pendapatan',
-        render: (row) => currency.format(row.revenue),
-    },
-    {
-        key: 'growth',
-        label: 'Pertumbuhan',
+        key: 'grand_total',
+        label: 'Total',
+        className: 'text-right',
         render: (row) => (
-            <span
-                className={`inline-flex items-center gap-1 font-semibold ${
-                    row.growth >= 0 ? 'text-brand-600' : 'text-rose-600'
-                }`}
-            >
-                <Icon
-                    name={row.growth >= 0 ? 'arrowUp' : 'arrowDown'}
-                    className="h-3.5 w-3.5"
-                />
-                {Math.abs(row.growth)}%
+            <span className="font-semibold text-slate-800">
+                {currency.format(row.grand_total)}
             </span>
         ),
     },
 ];
 
-export default function LaporanIndex() {
+export default function LaporanIndex({ orders = [], summary = [], filters = {} }) {
+    const [mode, setMode] = useState(filters.mode ?? 'bulan');
+    const [bulan, setBulan] = useState(filters.bulan ?? '');
+    const [dari, setDari] = useState(filters.dari ?? '');
+    const [sampai, setSampai] = useState(filters.sampai ?? '');
+
+    const query =
+        mode === 'rentang' ? { mode, dari, sampai } : { mode, bulan };
+    const exportUrl = `/laporan/export?${new URLSearchParams(query).toString()}`;
+
+    const apply = (event) => {
+        event.preventDefault();
+
+        router.get('/laporan', query, {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+        });
+    };
+
     return (
         <>
             <Head title="Laporan" />
 
             <PageHeader
                 title="Laporan"
-                description="Ringkasan performa penjualan dan servis bengkel."
+                description="Ringkasan dan daftar transaksi order bengkel."
             >
-                <button
-                    type="button"
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-                >
-                    <Icon name="filter" className="h-4 w-4" />
-                    Periode
-                </button>
-                <button
-                    type="button"
+                <a
+                    href={exportUrl}
                     className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm shadow-brand-600/30 hover:bg-brand-700"
                 >
                     <Icon name="download" className="h-4 w-4" />
-                    Unduh Laporan
-                </button>
+                    Unduh PDF
+                </a>
             </PageHeader>
+
+            <form
+                onSubmit={apply}
+                className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="flex flex-wrap items-end gap-4">
+                        <div>
+                            <span className={labelClass}>Filter</span>
+                            <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+                                {[
+                                    { value: 'bulan', label: 'Bulan' },
+                                    {
+                                        value: 'rentang',
+                                        label: 'Rentang Tanggal',
+                                    },
+                                ].map((option) => (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        onClick={() => setMode(option.value)}
+                                        className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                                            mode === option.value
+                                                ? 'bg-white text-brand-700 shadow-sm'
+                                                : 'text-slate-500 hover:text-slate-700'
+                                        }`}
+                                    >
+                                        {option.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {mode === 'bulan' ? (
+                            <label className="block">
+                                <span className={labelClass}>Bulan</span>
+                                <input
+                                    type="month"
+                                    value={bulan}
+                                    onChange={(event) =>
+                                        setBulan(event.target.value)
+                                    }
+                                    className={inputClass}
+                                />
+                            </label>
+                        ) : (
+                            <>
+                                <label className="block">
+                                    <span className={labelClass}>Dari</span>
+                                    <input
+                                        type="date"
+                                        value={dari}
+                                        onChange={(event) =>
+                                            setDari(event.target.value)
+                                        }
+                                        className={inputClass}
+                                    />
+                                </label>
+                                <label className="block">
+                                    <span className={labelClass}>Sampai</span>
+                                    <input
+                                        type="date"
+                                        value={sampai}
+                                        onChange={(event) =>
+                                            setSampai(event.target.value)
+                                        }
+                                        className={inputClass}
+                                    />
+                                </label>
+                            </>
+                        )}
+                    </div>
+
+                    <button
+                        type="submit"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                        <Icon name="filter" className="h-4 w-4" />
+                        Terapkan
+                    </button>
+                </div>
+            </form>
 
             <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
                 {summary.map((item) => (
@@ -99,9 +184,7 @@ export default function LaporanIndex() {
                             <p className="text-lg font-bold text-slate-900">
                                 {item.format === 'currency'
                                     ? currency.format(item.value)
-                                    : new Intl.NumberFormat('id-ID').format(
-                                          item.value,
-                                      )}
+                                    : number.format(item.value)}
                             </p>
                             <p className="text-sm text-slate-500">
                                 {item.label}
@@ -111,7 +194,7 @@ export default function LaporanIndex() {
                 ))}
             </div>
 
-            <DataTable columns={columns} rows={report} />
+            <DataTable columns={columns} rows={orders} />
         </>
     );
 }

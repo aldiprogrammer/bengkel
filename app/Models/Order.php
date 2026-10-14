@@ -6,12 +6,14 @@ use Database\Factories\OrderFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'kode_order',
     'pelanggan',
     'montir',
+    'id_kasir',
     'uang',
     'kembalian',
     'metode_pembayaran',
@@ -41,6 +43,16 @@ class Order extends Model
     public function listorder(): HasMany
     {
         return $this->hasMany(Listorder::class, 'kode_order', 'kode_order');
+    }
+
+    /**
+     * Get the cashier who handled the order.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function kasir(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'id_kasir');
     }
 
     /**

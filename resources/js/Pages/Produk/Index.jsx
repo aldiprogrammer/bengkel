@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import AdminLayout from '../../Layouts/AdminLayout';
 import PageHeader from '../../Components/PageHeader';
 import DataTable from '../../Components/DataTable';
 import Modal from '../../Components/Modal';
+import BarcodeScanner from '../../Components/BarcodeScanner';
 import Icon from '../../Components/Icons';
 
 const currency = new Intl.NumberFormat('id-ID', {
@@ -57,6 +58,10 @@ export default function ProdukIndex({ produk = [], kategori = [] }) {
     const [filterOpen, setFilterOpen] = useState(false);
     const [filterKategori, setFilterKategori] = useState('');
     const [filterSatuan, setFilterSatuan] = useState('');
+    const [scannerOpen, setScannerOpen] = useState(false);
+    const [selectedIds, setSelectedIds] = useState([]);
+    const kodeInputRef = useRef(null);
+    const namaInputRef = useRef(null);
 
     const {
         data,
@@ -78,6 +83,29 @@ export default function ProdukIndex({ produk = [], kategori = [] }) {
         diskon: '',
         tanggal_masuk: today(),
     });
+
+    useEffect(() => {
+        if (formOpen && !editing) {
+            kodeInputRef.current?.focus();
+        }
+    }, [formOpen, editing]);
+
+    useEffect(() => {
+        setSelectedIds([]);
+    }, [search, filterKategori, filterSatuan]);
+
+    useEffect(() => {
+        setSelectedIds((current) =>
+            current.filter((id) => produk.some((row) => row.id === id)),
+        );
+    }, [produk]);
+
+    const handleKodeKeyDown = (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            namaInputRef.current?.focus();
+        }
+    };
 
     const nextKode = () => {
         const max = produk.reduce((highest, item) => {
@@ -128,6 +156,7 @@ export default function ProdukIndex({ produk = [], kategori = [] }) {
 
     const closeForm = () => {
         setFormOpen(false);
+        setScannerOpen(false);
         setEditing(null);
         reset();
     };
@@ -190,7 +219,74 @@ export default function ProdukIndex({ produk = [], kategori = [] }) {
         setFilterSatuan('');
     };
 
+    const visibleIds = filteredProduk.map((row) => row.id);
+    const allVisibleSelected =
+        visibleIds.length > 0 &&
+        visibleIds.every((id) => selectedIds.includes(id));
+
+    const toggleSelection = (id) => {
+        setSelectedIds((current) =>
+            current.includes(id)
+                ? current.filter((value) => value !== id)
+                : [...current, id],
+        );
+    };
+
+    const toggleSelectAllVisible = () => {
+        setSelectedIds((current) =>
+            visibleIds.every((id) => current.includes(id))
+                ? current.filter((id) => !visibleIds.includes(id))
+                : Array.from(new Set([...current, ...visibleIds])),
+        );
+    };
+
+    const exportParams = new URLSearchParams();
+    if (search.trim()) {
+        exportParams.set('search', search.trim());
+    }
+    if (filterKategori) {
+        exportParams.set('kategori', filterKategori);
+    }
+    if (filterSatuan) {
+        exportParams.set('satuan', filterSatuan);
+    }
+    const exportQuery = exportParams.toString();
+    const exportUrl = `/produk/export${exportQuery ? `?${exportQuery}` : ''}`;
+
+    const barcodeParams = new URLSearchParams();
+
+    if (selectedIds.length > 0) {
+        barcodeParams.set('ids', selectedIds.join(','));
+    } else {
+        exportParams.forEach((value, key) => barcodeParams.set(key, value));
+    }
+
+    const barcodeQuery = barcodeParams.toString();
+    const barcodeUrl = `/produk/barcode${barcodeQuery ? `?${barcodeQuery}` : ''}`;
+
     const columns = [
+        {
+            key: 'select',
+            label: (
+                <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={toggleSelectAllVisible}
+                    aria-label="Pilih semua produk"
+                    className="h-4 w-4 cursor-pointer accent-brand-600"
+                />
+            ),
+            className: 'w-10',
+            render: (row) => (
+                <input
+                    type="checkbox"
+                    checked={selectedIds.includes(row.id)}
+                    onChange={() => toggleSelection(row.id)}
+                    aria-label={`Pilih ${row.nama_produk}`}
+                    className="h-4 w-4 cursor-pointer accent-brand-600"
+                />
+            ),
+        },
         {
             key: 'kode_produk',
             label: 'Kode Barang',
@@ -310,13 +406,22 @@ export default function ProdukIndex({ produk = [], kategori = [] }) {
                 title="Produk & Stok"
                 description="Kelola sparepart, harga, dan ketersediaan stok."
             >
-                <button
-                    type="button"
+                <a
+                    href={exportUrl}
                     className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
                 >
                     <Icon name="download" className="h-4 w-4" />
-                    Ekspor
-                </button>
+                    Ekspor PDF
+                </a>
+                <a
+                    href={barcodeUrl}
+                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                >
+                    <Icon name="qrCode" className="h-4 w-4" />
+                    {selectedIds.length > 0
+                        ? `Cetak Barcode (${selectedIds.length})`
+                        : 'Cetak Barcode'}
+                </a>
                 <button
                     type="button"
                     onClick={openCreate}
@@ -444,6 +549,22 @@ export default function ProdukIndex({ produk = [], kategori = [] }) {
                 </div>
             </div>
 
+            {selectedIds.length > 0 && (
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm text-brand-800">
+                    <span>
+                        <strong>{selectedIds.length}</strong> produk dipilih
+                        untuk dicetak barcode.
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedIds([])}
+                        className="rounded-lg px-2.5 py-1 text-sm font-medium text-brand-700 hover:bg-brand-100"
+                    >
+                        Bersihkan pilihan
+                    </button>
+                </div>
+            )}
+
             <DataTable
                 columns={columns}
                 rows={filteredProduk}
@@ -468,7 +589,7 @@ export default function ProdukIndex({ produk = [], kategori = [] }) {
             />
 
             <Modal
-                open={formOpen}
+                open={formOpen && !scannerOpen}
                 onClose={closeForm}
                 title={editing ? 'Edit Produk' : 'Tambah Produk'}
                 description={
@@ -481,19 +602,36 @@ export default function ProdukIndex({ produk = [], kategori = [] }) {
                 <form onSubmit={submit} className="space-y-4">
                     <div className="grid gap-4 sm:grid-cols-2">
                         <Field label="Kode Barang" error={errors.kode_produk}>
-                            <input
-                                type="text"
-                                value={data.kode_produk}
-                                onChange={(event) =>
-                                    setData('kode_produk', event.target.value)
-                                }
-                                placeholder="BRG-0001"
-                                className={`${inputClass} ${errorClass('kode_produk')}`}
-                            />
+                            <div className="flex gap-2">
+                                <input
+                                    ref={kodeInputRef}
+                                    type="text"
+                                    value={data.kode_produk}
+                                    onChange={(event) =>
+                                        setData('kode_produk', event.target.value)
+                                    }
+                                    onKeyDown={handleKodeKeyDown}
+                                    placeholder="Scan barcode atau BRG-0001"
+                                    className={`${inputClass} ${errorClass('kode_produk')}`}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setScannerOpen(true)}
+                                    title="Scan barcode / QR dengan kamera"
+                                    className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                                >
+                                    <Icon name="camera" className="h-5 w-5" />
+                                    <span className="hidden sm:inline">Scan</span>
+                                </button>
+                            </div>
+                            <span className="mt-1 block text-xs text-slate-400">
+                                Dapat diisi dengan barcode scanner atau kamera.
+                            </span>
                         </Field>
 
                         <Field label="Nama Produk" error={errors.nama_produk}>
                             <input
+                                ref={namaInputRef}
                                 type="text"
                                 value={data.nama_produk}
                                 onChange={(event) =>
@@ -658,6 +796,12 @@ export default function ProdukIndex({ produk = [], kategori = [] }) {
                     </button>
                 </div>
             </Modal>
+
+            <BarcodeScanner
+                open={scannerOpen}
+                onClose={() => setScannerOpen(false)}
+                onDetected={(code) => setData('kode_produk', code)}
+            />
         </>
     );
 }
