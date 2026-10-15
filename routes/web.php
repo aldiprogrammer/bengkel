@@ -62,5 +62,6 @@ Route::middleware('auth')->group(function () {
     Route::inertia('transaksi', 'Transaksi/Index')->name('transaksi.index');
     Route::get('laporan', [LaporanController::class, 'index'])->name('laporan.index');
     Route::get('laporan/export', [LaporanController::class, 'exportPdf'])->name('laporan.export');
+    Route::get('laporan/{order}/detail', [LaporanController::class, 'detail'])->name('laporan.detail');
     Route::inertia('pengaturan', 'Pengaturan/Index')->name('pengaturan.index');
 });

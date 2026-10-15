@@ -4,6 +4,7 @@ import AdminLayout from '../../Layouts/AdminLayout';
 import PageHeader from '../../Components/PageHeader';
 import DataTable from '../../Components/DataTable';
 import Icon from '../../Components/Icons';
+import Modal from '../../Components/Modal';
 
 const currency = new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -25,7 +26,7 @@ const inputClass =
 const labelClass =
     'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500';
 
-const columns = [
+const baseColumns = [
     {
         key: 'kode_order',
         label: 'Kode Order',
@@ -57,6 +58,53 @@ export default function LaporanIndex({ orders = [], summary = [], filters = {} }
     const [bulan, setBulan] = useState(filters.bulan ?? '');
     const [dari, setDari] = useState(filters.dari ?? '');
     const [sampai, setSampai] = useState(filters.sampai ?? '');
+
+    const [showDetail, setShowDetail] = useState(false);
+    const [detail, setDetail] = useState(null);
+    const [loadingDetail, setLoadingDetail] = useState(false);
+
+    const handleRowClick = async (row) => {
+        setLoadingDetail(true);
+        setShowDetail(true);
+        setDetail(null);
+        try {
+            const res = await fetch(`/laporan/${row.id}/detail`, {
+                headers: { Accept: 'application/json' },
+            });
+            if (!res.ok) {
+                throw new Error('Gagal memuat detail orderan.');
+            }
+            setDetail(await res.json());
+        } catch (e) {
+            console.error(e);
+            setShowDetail(false);
+        } finally {
+            setLoadingDetail(false);
+        }
+    };
+
+    const columns = [
+        ...baseColumns,
+        {
+            key: 'aksi',
+            label: 'Lihat',
+            className: 'w-16 text-center',
+            render: (row) => (
+                <button
+                    type="button"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleRowClick(row);
+                    }}
+                    className="inline-flex items-center justify-center rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-brand-50 hover:text-brand-600"
+                    title="Lihat detail orderan (listorder)"
+                    aria-label="Lihat detail orderan"
+                >
+                    <Icon name="eye" className="h-4 w-4" />
+                </button>
+            ),
+        },
+    ];
 
     const query =
         mode === 'rentang' ? { mode, dari, sampai } : { mode, bulan };
@@ -194,7 +242,68 @@ export default function LaporanIndex({ orders = [], summary = [], filters = {} }
                 ))}
             </div>
 
-            <DataTable columns={columns} rows={orders} />
+            <DataTable columns={columns} rows={orders} onRowClick={handleRowClick} />
+
+            <Modal
+                open={showDetail}
+                onClose={() => setShowDetail(false)}
+                title="Detail Orderan"
+                description="Detail item diambil dari tabel listorder."
+                maxWidth="max-w-4xl"
+            >
+
+                    {loadingDetail && (
+                        <div className="flex items-center justify-center py-10">
+                            <span className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-brand-600" />
+                        </div>
+                    )}
+
+                    {detail && (
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
+                                <div><span className="text-slate-500">Kode Order:</span> <span className="font-medium">{detail.order.kode_order}</span></div>
+                                <div><span className="text-slate-500">Tanggal:</span> {date.format(new Date(detail.order.tanggal))}</div>
+                                <div><span className="text-slate-500">Pelanggan:</span> {detail.order.pelanggan}</div>
+                                <div><span className="text-slate-500">Kasir:</span> {detail.order.kasir?.name ?? '-'}</div>
+                                <div><span className="text-slate-500">Metode Bayar:</span> {detail.order.metode_pembayaran}</div>
+                                <div><span className="text-slate-500">Total Harga:</span> {currency.format(detail.order.total_harga)}</div>
+                                <div><span className="text-slate-500">Diskon:</span> {currency.format(detail.order.diskon ?? 0)}</div>
+                                <div><span className="text-slate-500">Grand Total:</span> <span className="font-semibold">{currency.format(detail.order.grand_total)}</span></div>
+                                <div><span className="text-slate-500">Uang:</span> {currency.format(detail.order.uang)}</div>
+                                <div><span className="text-slate-500">Kembalian:</span> {currency.format(detail.order.kembalian)}</div>
+                            </div>
+
+                            <div className="overflow-x-auto rounded-lg border border-slate-200">
+                                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                                    <thead className="bg-slate-50">
+                                        <tr>
+                                            <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">No</th>
+                                            <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Nama Item</th>
+                                            <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Tipe</th>
+                                            <th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Qty</th>
+                                            <th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Harga</th>
+                                            <th className="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {detail.listorders?.length > 0 ? detail.listorders.map((item, idx) => (
+                                            <tr key={item.id}>
+                                                <td className="px-3 py-2 text-slate-600">{idx + 1}</td>
+                                                <td className="px-3 py-2 text-slate-700">{item.nama}</td>
+                                                <td className="px-3 py-2 text-slate-600">{item.tipe}</td>
+                                                <td className="px-3 py-2 text-right text-slate-700">{item.qty}</td>
+                                                <td className="px-3 py-2 text-right text-slate-700">{currency.format(item.harga)}</td>
+                                                <td className="px-3 py-2 text-right font-medium text-slate-800">{currency.format(item.subtotal)}</td>
+                                            </tr>
+                                        )) : (
+                                            <tr><td colSpan={6} className="px-3 py-6 text-center text-slate-400">Tidak ada item di listorder</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+            </Modal>
         </>
     );
 }

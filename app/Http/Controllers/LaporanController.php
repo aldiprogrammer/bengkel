@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\LaporanRequest;
 use App\Models\Order;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -117,5 +118,31 @@ class LaporanController extends Controller
             ['label' => 'Total Order', 'value' => $totalOrders, 'format' => 'number', 'icon' => 'wrench'],
             ['label' => 'Rata-rata per Order', 'value' => $totalOrders > 0 ? intdiv($revenue, $totalOrders) : 0, 'format' => 'currency', 'icon' => 'chart'],
         ];
+    }
+
+    public function detail(Order $order): JsonResponse
+    {
+        $order->load([
+            'listorder.produk',
+            'listorder.jasa',
+            'kasir',
+        ]);
+
+        $listorders = $order->listorder->map(fn ($item) => [
+            'id' => $item->id,
+            'kode_produk' => $item->kode_produk,
+            'kode_jasa' => $item->kode_jasa,
+            'nama' => $item->produk?->nama_produk ?? $item->jasa?->nama_jasa ?? '-',
+            'tipe' => $item->kode_produk ? 'Produk' : ($item->kode_jasa ? 'Jasa' : '-'),
+            'harga' => $item->harga,
+            'qty' => $item->qty,
+            'diskon' => $item->diskon,
+            'subtotal' => ($item->harga * $item->qty) - $item->diskon,
+        ]);
+
+        return response()->json([
+            'order' => $order,
+            'listorders' => $listorders,
+        ]);
     }
 }

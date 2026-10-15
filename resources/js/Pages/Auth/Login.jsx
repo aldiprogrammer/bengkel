@@ -123,7 +123,7 @@ export default function Login() {
                         )}
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center">
                         <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
                             <input
                                 type="checkbox"
@@ -135,12 +135,6 @@ export default function Login() {
                             />
                             Ingat saya
                         </label>
-                        <a
-                            href="#"
-                            className="text-sm font-medium text-brand-600 hover:text-brand-700"
-                        >
-                            Lupa kata sandi?
-                        </a>
                     </div>
 
                     <button
@@ -152,16 +146,6 @@ export default function Login() {
                         <Icon name="logout" className="h-4 w-4" />
                     </button>
                 </form>
-
-                <div className="mt-6 rounded-lg bg-slate-50 px-4 py-3 text-xs text-slate-500">
-                    <p className="font-semibold text-slate-600">
-                        Akun demo
-                    </p>
-                    <p className="mt-0.5">
-                        Email: admin@posbengkel.test &middot; Kata sandi:
-                        password
-                    </p>
-                </div>
             </div>
         </>
     );
